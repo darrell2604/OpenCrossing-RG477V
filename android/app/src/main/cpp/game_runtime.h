@@ -5,15 +5,9 @@
 #include "decomp_game_loop.h"
 #include "decomp_runtime_adapter.h"
 #include "platform_services.h"
+#include "scene_state.h"
 
 namespace open_crossing {
-
-struct SceneState {
-    float player_x = 0.0f;
-    float player_z = 0.0f;
-    float player_angle = 0.0f;
-    std::uint64_t frame = 0;
-};
 
 class GameRuntime {
 public:
