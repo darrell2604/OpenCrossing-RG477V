@@ -28,35 +28,61 @@ jobs:
         working-directory: upstream/ac-decomp
         run: git rev-parse HEAD | tee ../../upstream-revision.txt
 
-      - name: Audit upstream 32-bit assumptions
+      - name: Verify upstream contains supported target metadata
+        run: |
+          test -f upstream/ac-decomp/configure.py
+          test -f upstream/ac-decomp/README.md
+          grep -q 'GAFE01_00' upstream/ac-decomp/README.md
+
+      - name: Audit upstream ARM64 risks
+        shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           root = Path('upstream/ac-decomp')
           extensions = {'.c', '.h', '.cc', '.cpp', '.cxx'}
           patterns = {
-              'pointer-to-u32 cast': re.compile(r'\(u32\)\s*\([^)]*\*|static_cast\s*<\s*u32\s*>\s*\('),
+              'pointer-to-u32 cast': re.compile(r'\(u32\)\s*\([^;\n]*\*|static_cast\s*<\s*u32\s*>\s*\('),
+              'explicit 32-bit pointer assumption': re.compile(r'CMAKE_SIZEOF_VOID_P|sizeof\s*\(\s*void\s*\*\s*\)|__PTRDIFF_TYPE__'),
               'uintptr/intptr': re.compile(r'\b(?:uintptr_t|intptr_t)\b'),
-              'pointer-sized integer': re.compile(r'\b(?:size_t|ptrdiff_t)\b'),
+              '32-bit integer types': re.compile(r'\b(?:u32|s32|uint32_t|int32_t)\b'),
           }
+
           counts = {k: 0 for k in patterns}
+          hits = {k: [] for k in patterns}
           files = 0
+
           for p in root.rglob('*'):
               if p.suffix not in extensions or not p.is_file():
                   continue
               files += 1
               try:
-                  text = p.read_text(errors='ignore')
+                  lines = p.read_text(errors='ignore').splitlines()
               except OSError:
                   continue
-              for name, rx in patterns.items():
-                  counts[name] += len(rx.findall(text))
-          out = ['# Upstream ARM64 audit', '', f'Files scanned: {files}', '']
-          for name, count in counts.items():
-              out.append(f'- {name}: {count}')
-          Path('arm64-audit.md').write_text('\n'.join(out) + '\n')
-          print('\n'.join(out))
+              for lineno, line in enumerate(lines, 1):
+                  for name, rx in patterns.items():
+                      if rx.search(line):
+                          counts[name] += 1
+                          if len(hits[name]) < 20:
+                              hits[name].append(f'{p}:{lineno}: {line.strip()}')
+
+          report = [
+              '# Upstream ARM64 audit', '',
+              f'- Files scanned: {files}',
+              '',
+              '## Counts',
+          ]
+          report += [f'- {name}: {count}' for name, count in counts.items()]
+          report += ['', '## Sample hits']
+          for name, sample in hits.items():
+              report += ['', f'### {name}']
+              report += sample or ['(none)']
+
+          Path('arm64-audit.md').write_text('\n'.join(report) + '\n')
+          print('\n'.join(report))
           PY
 
       - name: Set up JDK
@@ -84,4 +110,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: arm64-audit
-          path: arm64-audit.md
+          path: |
+            arm64-audit.md
+            upstream-revision.txt
