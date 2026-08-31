@@ -12,7 +12,11 @@ constexpr float kWalkSpeed = 0.65f;
 constexpr float kInputEpsilon = 0.05f;
 constexpr float kSpeedEpsilon = 0.01f;
 constexpr float kCollisionRadius = 0.20f;
-constexpr float kAnimationRate = 0.35f;
+constexpr float kAnimationStartFrames = 2.0f;
+constexpr float kWalkCycleFrames = 8.0f;
+constexpr float kWalkRate = 0.35f;
+constexpr float kTurnRate = 0.22f;
+constexpr float kStopFrames = 2.0f;
 constexpr float kPi = 3.14159265f;
 constexpr float kTwoPi = 6.28318531f;
 
@@ -28,19 +32,26 @@ bool point_in_expanded_rect(float x, float z, const CollisionRect& rect, float r
            z >= rect.min_z - radius && z <= rect.max_z + radius;
 }
 
+float clamp_unit(float value) {
+    return std::clamp(value, 0.0f, 1.0f);
+}
+
 } // namespace
 
 void PlayerSimulation::reset() {
     x_ = 0.0f;
     z_ = 0.0f;
     angle_ = 0.0f;
+    previous_angle_ = 0.0f;
     speed_ = 0.0f;
     input_magnitude_ = 0.0f;
+    turn_amount_ = 0.0f;
     movement_state_ = MovementState::Idle;
     animation_state_ = AnimationState::Idle;
     blocked_ = false;
     animation_frame_ = 0.0f;
     animation_phase_ = 0.0f;
+    animation_blend_ = 0.0f;
     steps_ = 0;
 }
 
@@ -82,45 +93,87 @@ void PlayerSimulation::try_move(float dx, float dz) {
 }
 
 void PlayerSimulation::update_animation() {
+    const float turn_delta = shortest_angle_delta(angle_, previous_angle_);
+    turn_amount_ = std::min(1.0f, std::fabs(turn_delta) * 2.0f);
+    previous_angle_ = angle_;
+
     switch (animation_state_) {
         case AnimationState::Idle:
             animation_frame_ = 0.0f;
+            animation_blend_ = 0.0f;
+            if (turn_amount_ > 0.08f && speed_ <= kSpeedEpsilon) {
+                animation_state_ = AnimationState::Turn;
+                animation_frame_ = 0.0f;
+                animation_blend_ = turn_amount_;
+            } else if (speed_ > kSpeedEpsilon) {
+                animation_state_ = AnimationState::WalkStart;
+                animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
+            }
+            break;
+
+        case AnimationState::Turn:
+            animation_frame_ += kWalkRate;
+            animation_blend_ = clamp_unit(1.0f - animation_frame_ / kStopFrames);
             if (speed_ > kSpeedEpsilon) {
                 animation_state_ = AnimationState::WalkStart;
                 animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
+            } else if (animation_frame_ >= kStopFrames) {
+                animation_state_ = AnimationState::Idle;
+                animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
             }
             break;
 
         case AnimationState::WalkStart:
-            animation_frame_ += kAnimationRate;
-            if (animation_frame_ >= 2.0f) {
+            animation_frame_ += kWalkRate + speed_ * 0.5f;
+            animation_blend_ = clamp_unit(animation_frame_ / kAnimationStartFrames);
+            if (animation_frame_ >= kAnimationStartFrames) {
                 animation_state_ = AnimationState::Walk;
-                animation_frame_ = std::fmod(animation_frame_, 8.0f);
+                animation_frame_ = std::fmod(animation_frame_, kWalkCycleFrames);
+                animation_blend_ = 1.0f;
             }
             if (speed_ <= kSpeedEpsilon) {
                 animation_state_ = AnimationState::WalkStop;
                 animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
             }
             break;
 
         case AnimationState::Walk:
-            animation_frame_ = std::fmod(animation_frame_ + kAnimationRate + speed_ * 0.8f, 8.0f);
-            if (speed_ <= kSpeedEpsilon) {
+            animation_frame_ = std::fmod(
+                animation_frame_ + kWalkRate + speed_ * 0.8f, kWalkCycleFrames);
+            animation_blend_ = clamp_unit(speed_ / kWalkSpeed);
+            if (turn_amount_ > 0.18f && speed_ < kWalkSpeed * 0.35f) {
+                animation_state_ = AnimationState::Turn;
+                animation_frame_ = 0.0f;
+                animation_blend_ = turn_amount_;
+            } else if (speed_ <= kSpeedEpsilon) {
                 animation_state_ = AnimationState::WalkStop;
                 animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
             }
             break;
 
         case AnimationState::WalkStop:
-            animation_frame_ += kAnimationRate;
-            if (animation_frame_ >= 2.0f || speed_ > kSpeedEpsilon) {
-                animation_state_ = speed_ > kSpeedEpsilon ? AnimationState::WalkStart : AnimationState::Idle;
+            animation_frame_ += kWalkRate;
+            animation_blend_ = clamp_unit(animation_frame_ / kStopFrames);
+            if (speed_ > kSpeedEpsilon) {
+                animation_state_ = AnimationState::WalkStart;
                 animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
+            } else if (animation_frame_ >= kStopFrames) {
+                animation_state_ = AnimationState::Idle;
+                animation_frame_ = 0.0f;
+                animation_blend_ = 0.0f;
             }
             break;
     }
 
-    animation_phase_ = animation_frame_ / 8.0f;
+    animation_phase_ = animation_state_ == AnimationState::Turn
+        ? clamp_unit(animation_frame_ / kStopFrames)
+        : std::fmod(animation_frame_ / kWalkCycleFrames, 1.0f);
 }
 
 void PlayerSimulation::update(const oc::ControllerState& controller) {
@@ -130,7 +183,7 @@ void PlayerSimulation::update(const oc::ControllerState& controller) {
 
     if (input_magnitude_ > kInputEpsilon) {
         const float target_angle = std::atan2(input_x, -input_y);
-        angle_ += shortest_angle_delta(target_angle, angle_) * 0.18f;
+        angle_ += shortest_angle_delta(target_angle, angle_) * kTurnRate;
 
         const float target_speed = kWalkSpeed * input_magnitude_;
         if (speed_ < target_speed) {
