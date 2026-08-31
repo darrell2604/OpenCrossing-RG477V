@@ -5,17 +5,13 @@
 namespace open_crossing {
 
 namespace {
-
 GLuint compile_shader(GLenum type, const char* source) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
     GLint ok = GL_FALSE;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
-    if (ok != GL_TRUE) {
-        glDeleteShader(shader);
-        return 0;
-    }
+    if (ok != GL_TRUE) { glDeleteShader(shader); return 0; }
     return shader;
 }
 
@@ -33,26 +29,14 @@ GLuint make_program() {
     )";
     const GLuint vertex = compile_shader(GL_VERTEX_SHADER, kVertexShader);
     const GLuint fragment = compile_shader(GL_FRAGMENT_SHADER, kFragmentShader);
-    if (!vertex || !fragment) {
-        if (vertex) glDeleteShader(vertex);
-        if (fragment) glDeleteShader(fragment);
-        return 0;
-    }
+    if (!vertex || !fragment) { if (vertex) glDeleteShader(vertex); if (fragment) glDeleteShader(fragment); return 0; }
     const GLuint program = glCreateProgram();
-    glAttachShader(program, vertex);
-    glAttachShader(program, fragment);
-    glLinkProgram(program);
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-    GLint linked = GL_FALSE;
-    glGetProgramiv(program, GL_LINK_STATUS, &linked);
-    if (linked != GL_TRUE) {
-        glDeleteProgram(program);
-        return 0;
-    }
+    glAttachShader(program, vertex); glAttachShader(program, fragment); glLinkProgram(program);
+    glDeleteShader(vertex); glDeleteShader(fragment);
+    GLint linked = GL_FALSE; glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (linked != GL_TRUE) { glDeleteProgram(program); return 0; }
     return program;
 }
-
 } // namespace
 
 bool GameRuntime::initialise() {
@@ -60,46 +44,37 @@ bool GameRuntime::initialise() {
     platform_ = {};
     frame_counter_ = 0;
     if (!decomp_.initialise(platform_)) return false;
+    if (!game_loop_.initialise(platform_)) return false;
     ready_ = true;
     return true;
 }
 
 void GameRuntime::resize(int width, int height) {
-    width_ = width;
-    height_ = height > 0 ? height : 1;
-    platform_.viewport_width = width_;
-    platform_.viewport_height = height_;
+    width_ = width; height_ = height > 0 ? height : 1;
+    platform_.viewport_width = width_; platform_.viewport_height = height_;
     glViewport(0, 0, width_, height_);
 }
 
 void GameRuntime::frame() {
     if (!ready_) return;
-
     platform_.frame_number = ++frame_counter_;
     decomp_.begin_frame(platform_);
+    game_loop_.update(platform_);
 
-    static GLuint program = 0;
-    static GLuint vertex_buffer = 0;
+    static GLuint program = 0, vertex_buffer = 0;
     if (!program) {
         program = make_program();
         constexpr float vertices[] = { 0.0f, 0.65f, -0.65f, -0.55f, 0.65f, -0.55f };
-        glGenBuffers(1, &vertex_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glGenBuffers(1, &vertex_buffer); glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
-
     glClearColor(0.04f, 0.10f, 0.06f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     if (program && vertex_buffer) {
-        glUseProgram(program);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glUseProgram(program); glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        glEnableVertexAttribArray(0); glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDisableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glUseProgram(0);
+        glDisableVertexAttribArray(0); glBindBuffer(GL_ARRAY_BUFFER, 0); glUseProgram(0);
     }
 }
 
