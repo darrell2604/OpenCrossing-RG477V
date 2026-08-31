@@ -73,7 +73,6 @@ void GameRuntime::frame() {
     render_frame.camera_z = camera_.state().z;
     render_frame.camera_yaw = camera_.state().yaw;
     render_frame.world = &world_;
-    render_frame.world_vertices = &world_.vertices();
     renderer_.draw(render_frame);
 }
 
