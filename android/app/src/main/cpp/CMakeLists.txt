@@ -9,6 +9,7 @@ add_library(opencrossing SHARED
     native_bridge.cpp
     game_runtime.cpp
     port_controller.cpp
+    platform_input.cpp
 )
 
 target_include_directories(opencrossing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
