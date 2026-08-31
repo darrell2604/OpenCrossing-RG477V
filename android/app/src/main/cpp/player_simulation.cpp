@@ -11,6 +11,7 @@ constexpr float kDeceleration = 0.0435f;
 constexpr float kWalkSpeed = 0.65f;
 constexpr float kInputEpsilon = 0.05f;
 constexpr float kSpeedEpsilon = 0.01f;
+constexpr float kCollisionRadius = 0.20f;
 constexpr float kPi = 3.14159265f;
 constexpr float kTwoPi = 6.28318531f;
 
@@ -20,7 +21,13 @@ float shortest_angle_delta(float target, float current) {
     while (delta < -kPi) delta += kTwoPi;
     return delta;
 }
+
+bool point_in_expanded_rect(float x, float z, const CollisionRect& rect, float radius) {
+    return x >= rect.min_x - radius && x <= rect.max_x + radius &&
+           z >= rect.min_z - radius && z <= rect.max_z + radius;
 }
+
+} // namespace
 
 void PlayerSimulation::reset() {
     x_ = 0.0f;
@@ -29,7 +36,47 @@ void PlayerSimulation::reset() {
     speed_ = 0.0f;
     input_magnitude_ = 0.0f;
     movement_state_ = MovementState::Idle;
+    blocked_ = false;
     steps_ = 0;
+}
+
+void PlayerSimulation::set_collision_rects(const std::vector<CollisionRect>& rects) {
+    collision_rects_ = rects;
+    // Keep a newly supplied collision map from leaving the player embedded.
+    if (collides(x_, z_)) {
+        blocked_ = true;
+    }
+}
+
+bool PlayerSimulation::collides(float x, float z) const {
+    for (const CollisionRect& rect : collision_rects_) {
+        if (point_in_expanded_rect(x, z, rect, kCollisionRadius)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void PlayerSimulation::try_move(float dx, float dz) {
+    blocked_ = false;
+    const float next_x = x_ + dx;
+    const float next_z = z_ + dz;
+
+    if (!collides(next_x, next_z)) {
+        x_ = next_x;
+        z_ = next_z;
+        return;
+    }
+
+    // Slide along a blocking face instead of stopping the whole movement.
+    if (std::fabs(dx) > 0.0f && !collides(next_x, z_)) {
+        x_ = next_x;
+    }
+    if (std::fabs(dz) > 0.0f && !collides(x_, next_z)) {
+        z_ = next_z;
+    }
+
+    blocked_ = true;
 }
 
 void PlayerSimulation::update(const oc::ControllerState& controller) {
@@ -52,8 +99,9 @@ void PlayerSimulation::update(const oc::ControllerState& controller) {
         speed_ = std::max(0.0f, speed_ - kDeceleration);
     }
 
-    x_ += std::sin(angle_) * speed_;
-    z_ += -std::cos(angle_) * speed_;
+    const float dx = std::sin(angle_) * speed_;
+    const float dz = -std::cos(angle_) * speed_;
+    try_move(dx, dz);
     movement_state_ = speed_ > kSpeedEpsilon ? MovementState::Walking : MovementState::Idle;
     ++steps_;
 }
