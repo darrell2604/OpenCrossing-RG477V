@@ -9,6 +9,7 @@ add_library(opencrossing SHARED
     native_bridge.cpp
     game_runtime.cpp
     decomp_runtime_adapter.cpp
+    decomp_game_loop.cpp
     port_controller.cpp
     platform_input.cpp
 )
