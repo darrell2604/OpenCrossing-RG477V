@@ -25,20 +25,18 @@ GLuint make_program() {
         layout(location = 0) in vec3 a_position;
         layout(location = 1) in vec2 a_uv;
         uniform vec3 u_translation;
-        uniform vec3 u_scale;
         uniform float u_angle;
         uniform vec2 u_view_scale;
         out vec2 v_uv;
         void main() {
             float c = cos(u_angle);
             float s = sin(u_angle);
-            vec3 p = vec3(
+            vec3 rotated = vec3(
                 a_position.x * c - a_position.z * s,
                 a_position.y,
                 a_position.x * s + a_position.z * c
             );
-            p *= u_scale;
-            vec3 view = p + u_translation;
+            vec3 view = rotated + u_translation;
             gl_Position = vec4(view.x * u_view_scale.x, view.z * u_view_scale.y, 0.0, 1.0);
             v_uv = a_uv;
         }
@@ -50,11 +48,11 @@ GLuint make_program() {
         uniform vec4 u_colour;
         out vec4 frag_colour;
         void main() {
-            vec2 centered = abs(v_uv - vec2(0.5));
-            float shade = 0.88 + 0.12 * (1.0 - clamp(centered.x + centered.y, 0.0, 1.0));
+            float shade = 0.88 + 0.12 * (1.0 - clamp(abs(v_uv.x - 0.5) + abs(v_uv.y - 0.5), 0.0, 1.0));
             frag_colour = vec4(u_colour.rgb * shade, u_colour.a);
         }
     )";
+
     const GLuint vertex = compile_shader(GL_VERTEX_SHADER, kVertex);
     const GLuint fragment = compile_shader(GL_FRAGMENT_SHADER, kFragment);
     if (!vertex || !fragment) {
@@ -62,12 +60,14 @@ GLuint make_program() {
         if (fragment) glDeleteShader(fragment);
         return 0;
     }
+
     const GLuint program = glCreateProgram();
     glAttachShader(program, vertex);
     glAttachShader(program, fragment);
     glLinkProgram(program);
     glDeleteShader(vertex);
     glDeleteShader(fragment);
+
     GLint linked = GL_FALSE;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (linked != GL_TRUE) {
@@ -88,6 +88,7 @@ struct GpuVertex {
 
 bool RendererPipeline::initialise() {
     if (program_) return true;
+
     program_ = make_program();
     if (!program_) return false;
 
@@ -96,6 +97,7 @@ bool RendererPipeline::initialise() {
         {-0.06f, 0.0f, -0.06f, 0.0f, 0.0f},
         {0.06f, 0.0f, -0.06f, 1.0f, 0.0f},
     };
+
     glGenBuffers(1, &player_vertex_buffer_);
     glBindBuffer(GL_ARRAY_BUFFER, player_vertex_buffer_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(player), player, GL_STATIC_DRAW);
@@ -135,6 +137,7 @@ void RendererPipeline::upload_world(const WorldGeometry& world) {
                  gpu_vertices.empty() ? nullptr : gpu_vertices.data(),
                  GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     world_vertex_count_ = static_cast<GLsizei>(gpu_vertices.size());
     uploaded_world_ = &world;
     uploaded_vertex_count_ = vertices.size();
@@ -160,8 +163,6 @@ void RendererPipeline::draw(const RenderFrame& frame) {
         glUniform3f(translation_location_, -frame.camera_x, 0.0f, -frame.camera_z);
         glUniform1f(angle_location_, frame.camera_yaw);
         glUniform4f(colour_location_, 0.20f, 0.42f, 0.24f, 1.0f);
-        glUniform3f(view_location_, 1.0f, 1.0f, 1.0f);
-        glUniform2f(view_location_, view_scale_x, view_scale_y);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GpuVertex), nullptr);
@@ -204,6 +205,9 @@ void RendererPipeline::shutdown() {
         glDeleteProgram(program_);
         program_ = 0;
     }
+    uploaded_world_ = nullptr;
+    uploaded_vertex_count_ = 0;
+    world_vertex_count_ = 0;
 }
 
 } // namespace open_crossing
