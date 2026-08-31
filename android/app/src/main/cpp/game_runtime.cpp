@@ -56,9 +56,12 @@ GLuint make_program() {
 } // namespace
 
 bool GameRuntime::initialise() {
-    ready_ = true;
+    ready_ = false;
     platform_ = {};
-    return ready_;
+    frame_counter_ = 0;
+    if (!decomp_.initialise(platform_)) return false;
+    ready_ = true;
+    return true;
 }
 
 void GameRuntime::resize(int width, int height) {
@@ -73,6 +76,7 @@ void GameRuntime::frame() {
     if (!ready_) return;
 
     platform_.frame_number = ++frame_counter_;
+    decomp_.begin_frame(platform_);
 
     static GLuint program = 0;
     static GLuint vertex_buffer = 0;
