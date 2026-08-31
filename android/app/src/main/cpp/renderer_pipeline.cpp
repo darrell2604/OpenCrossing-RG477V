@@ -161,7 +161,7 @@ void RendererPipeline::draw(const RenderFrame& frame) {
         upload_world(*frame.world);
         glBindBuffer(GL_ARRAY_BUFFER, world_vertex_buffer_);
         glUniform3f(translation_location_, -frame.camera_x, 0.0f, -frame.camera_z);
-        glUniform1f(angle_location_, frame.camera_yaw);
+        glUniform1f(angle_location_, 0.0f);
         glUniform4f(colour_location_, 0.20f, 0.42f, 0.24f, 1.0f);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
