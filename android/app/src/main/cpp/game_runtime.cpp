@@ -83,8 +83,10 @@ void GameRuntime::frame() {
     if (!program) {
         program = make_program();
         constexpr float vertices[] = { 0.0f, 0.065f, -0.045f, -0.04f, 0.045f, -0.04f };
-        glGenBuffers(1, &vertex_buffer); glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glGenBuffers(1, &vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         if (program) {
             translation_location = glGetUniformLocation(program, "u_translation");
             angle_location = glGetUniformLocation(program, "u_angle");
@@ -95,8 +97,6 @@ void GameRuntime::frame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     if (program && vertex_buffer) {
         const auto& player = game_loop_.player();
-        // Map the portable world coordinates into a bounded debug viewport so
-        // the first real player state is directly visible on the RG477V.
         const float screen_x = std::clamp(player.x() * 0.035f, -0.88f, 0.88f);
         const float screen_y = std::clamp(player.z() * 0.035f, -0.88f, 0.88f);
 
@@ -104,9 +104,12 @@ void GameRuntime::frame() {
         if (translation_location >= 0) glUniform2f(translation_location, screen_x, screen_y);
         if (angle_location >= 0) glUniform1f(angle_location, player.angle());
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-        glEnableVertexAttribArray(0); glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDisableVertexAttribArray(0); glBindBuffer(GL_ARRAY_BUFFER, 0); glUseProgram(0);
+        glDisableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glUseProgram(0);
     }
 }
 
