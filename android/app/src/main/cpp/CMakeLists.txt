@@ -11,6 +11,8 @@ add_library(opencrossing SHARED
     decomp_runtime_adapter.cpp
     decomp_game_loop.cpp
     player_simulation.cpp
+    player_interaction.cpp
+    player_camera.cpp
     port_controller.cpp
     platform_input.cpp
 )
