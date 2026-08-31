@@ -1,10 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include "platform_services.h"
 
 namespace open_crossing {
-
-struct PlatformServices;
 
 class DecompGameLoop {
 public:
