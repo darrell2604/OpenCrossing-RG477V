@@ -7,12 +7,57 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout project
         uses: actions/checkout@v4
+
+      - name: Checkout upstream decomp (reference only)
+        uses: actions/checkout@v4
+        with:
+          repository: ACreTeam/ac-decomp
+          path: upstream/ac-decomp
+          fetch-depth: 1
+
+      - name: Record upstream revision
+        working-directory: upstream/ac-decomp
+        run: git rev-parse HEAD | tee ../../upstream-revision.txt
+
+      - name: Audit upstream 32-bit assumptions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('upstream/ac-decomp')
+          extensions = {'.c', '.h', '.cc', '.cpp', '.cxx'}
+          patterns = {
+              'pointer-to-u32 cast': re.compile(r'\(u32\)\s*\([^)]*\*|static_cast\s*<\s*u32\s*>\s*\('),
+              'uintptr/intptr': re.compile(r'\b(?:uintptr_t|intptr_t)\b'),
+              'pointer-sized integer': re.compile(r'\b(?:size_t|ptrdiff_t)\b'),
+          }
+          counts = {k: 0 for k in patterns}
+          files = 0
+          for p in root.rglob('*'):
+              if p.suffix not in extensions or not p.is_file():
+                  continue
+              files += 1
+              try:
+                  text = p.read_text(errors='ignore')
+              except OSError:
+                  continue
+              for name, rx in patterns.items():
+                  counts[name] += len(rx.findall(text))
+          out = ['# Upstream ARM64 audit', '', f'Files scanned: {files}', '']
+          for name, count in counts.items():
+              out.append(f'- {name}: {count}')
+          Path('arm64-audit.md').write_text('\n'.join(out) + '\n')
+          print('\n'.join(out))
+          PY
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -34,3 +79,9 @@ jobs:
         with:
           name: opencrossing-rg477v-debug
           path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload ARM64 audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-audit
+          path: arm64-audit.md
