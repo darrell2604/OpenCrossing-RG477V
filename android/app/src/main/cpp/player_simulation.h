@@ -6,11 +6,15 @@
 
 namespace open_crossing {
 
-// Portable player movement slice derived from the upstream player-walk path.
-// It deliberately keeps collision, animation and rendering out of this layer
-// so the movement contract can execute on Android without GameCube services.
+// Portable player simulation. This is intentionally platform-neutral so the
+// same movement/state contract can later be fed by the real game systems.
 class PlayerSimulation {
 public:
+    enum class MovementState : std::uint8_t {
+        Idle,
+        Walking,
+    };
+
     void reset();
     void update(const oc::ControllerState& controller);
 
@@ -18,6 +22,9 @@ public:
     float z() const { return z_; }
     float angle() const { return angle_; }
     float speed() const { return speed_; }
+    float input_magnitude() const { return input_magnitude_; }
+    MovementState movement_state() const { return movement_state_; }
+    bool moving() const { return movement_state_ != MovementState::Idle; }
     std::uint64_t steps() const { return steps_; }
 
 private:
@@ -25,6 +32,8 @@ private:
     float z_ = 0.0f;
     float angle_ = 0.0f;
     float speed_ = 0.0f;
+    float input_magnitude_ = 0.0f;
+    MovementState movement_state_ = MovementState::Idle;
     std::uint64_t steps_ = 0;
 };
 
