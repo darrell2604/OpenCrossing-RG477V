@@ -7,7 +7,7 @@ import android.view.Window
 import android.view.WindowManager
 
 class MainActivity : Activity() {
-    private external fun nativeCreate()
+    private lateinit var gameView: NativeGameView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,8 +25,18 @@ class MainActivity : Activity() {
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         )
 
-        setContentView(R.layout.main)
-        nativeCreate()
+        gameView = NativeGameView(this)
+        setContentView(gameView)
+    }
+
+    override fun onPause() {
+        gameView.onPause()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        gameView.onResume()
     }
 
     companion object {
