@@ -12,6 +12,7 @@ constexpr float kWalkSpeed = 0.65f;
 constexpr float kInputEpsilon = 0.05f;
 constexpr float kSpeedEpsilon = 0.01f;
 constexpr float kCollisionRadius = 0.20f;
+constexpr float kAnimationRate = 0.35f;
 constexpr float kPi = 3.14159265f;
 constexpr float kTwoPi = 6.28318531f;
 
@@ -36,13 +37,15 @@ void PlayerSimulation::reset() {
     speed_ = 0.0f;
     input_magnitude_ = 0.0f;
     movement_state_ = MovementState::Idle;
+    animation_state_ = AnimationState::Idle;
     blocked_ = false;
+    animation_frame_ = 0.0f;
+    animation_phase_ = 0.0f;
     steps_ = 0;
 }
 
 void PlayerSimulation::set_collision_rects(const std::vector<CollisionRect>& rects) {
     collision_rects_ = rects;
-    // Keep a newly supplied collision map from leaving the player embedded.
     if (collides(x_, z_)) {
         blocked_ = true;
     }
@@ -68,7 +71,6 @@ void PlayerSimulation::try_move(float dx, float dz) {
         return;
     }
 
-    // Slide along a blocking face instead of stopping the whole movement.
     if (std::fabs(dx) > 0.0f && !collides(next_x, z_)) {
         x_ = next_x;
     }
@@ -77,6 +79,48 @@ void PlayerSimulation::try_move(float dx, float dz) {
     }
 
     blocked_ = true;
+}
+
+void PlayerSimulation::update_animation() {
+    switch (animation_state_) {
+        case AnimationState::Idle:
+            animation_frame_ = 0.0f;
+            if (speed_ > kSpeedEpsilon) {
+                animation_state_ = AnimationState::WalkStart;
+                animation_frame_ = 0.0f;
+            }
+            break;
+
+        case AnimationState::WalkStart:
+            animation_frame_ += kAnimationRate;
+            if (animation_frame_ >= 2.0f) {
+                animation_state_ = AnimationState::Walk;
+                animation_frame_ = std::fmod(animation_frame_, 8.0f);
+            }
+            if (speed_ <= kSpeedEpsilon) {
+                animation_state_ = AnimationState::WalkStop;
+                animation_frame_ = 0.0f;
+            }
+            break;
+
+        case AnimationState::Walk:
+            animation_frame_ = std::fmod(animation_frame_ + kAnimationRate + speed_ * 0.8f, 8.0f);
+            if (speed_ <= kSpeedEpsilon) {
+                animation_state_ = AnimationState::WalkStop;
+                animation_frame_ = 0.0f;
+            }
+            break;
+
+        case AnimationState::WalkStop:
+            animation_frame_ += kAnimationRate;
+            if (animation_frame_ >= 2.0f || speed_ > kSpeedEpsilon) {
+                animation_state_ = speed_ > kSpeedEpsilon ? AnimationState::WalkStart : AnimationState::Idle;
+                animation_frame_ = 0.0f;
+            }
+            break;
+    }
+
+    animation_phase_ = animation_frame_ / 8.0f;
 }
 
 void PlayerSimulation::update(const oc::ControllerState& controller) {
@@ -103,6 +147,7 @@ void PlayerSimulation::update(const oc::ControllerState& controller) {
     const float dz = -std::cos(angle_) * speed_;
     try_move(dx, dz);
     movement_state_ = speed_ > kSpeedEpsilon ? MovementState::Walking : MovementState::Idle;
+    update_animation();
     ++steps_;
 }
 
