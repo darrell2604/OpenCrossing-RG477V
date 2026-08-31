@@ -11,7 +11,11 @@ class NativeGameView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : GLSurfaceView(context, attrs) {
 
-    private class NativeRenderer : Renderer {
+    // This renderer needs access to the native methods on the enclosing
+    // NativeGameView instance. A nested class is static in Kotlin, so it
+    // cannot call the instance methods below; `inner` gives it the required
+    // reference to the enclosing view.
+    private inner class NativeRenderer : Renderer {
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             nativeSurfaceCreated()
         }
