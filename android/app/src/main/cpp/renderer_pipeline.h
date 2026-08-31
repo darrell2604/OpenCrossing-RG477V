@@ -17,7 +17,6 @@ struct RenderFrame {
     float camera_z = 0.0f;
     float camera_yaw = 0.0f;
     const WorldGeometry* world = nullptr;
-    const std::vector<WorldVertex>* world_vertices = nullptr;
 };
 
 class RendererPipeline {
