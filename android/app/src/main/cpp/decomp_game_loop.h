@@ -4,6 +4,7 @@
 
 #include "platform_services.h"
 #include "player_simulation.h"
+#include "scene_state.h"
 
 namespace open_crossing {
 
@@ -18,6 +19,9 @@ public:
     bool ready() const { return ready_; }
     float frame_scale() const { return frame_scale_; }
     const PlayerSimulation& player() const { return player_; }
+    SceneState scene_state() const {
+        return SceneState{player_.x(), player_.z(), player_.angle(), tick_};
+    }
 
 private:
     bool ready_ = false;
