@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+
 #include "platform_services.h"
+#include "player_simulation.h"
 
 namespace open_crossing {
 
@@ -15,11 +17,13 @@ public:
     uint64_t tick() const { return tick_; }
     bool ready() const { return ready_; }
     float frame_scale() const { return frame_scale_; }
+    const PlayerSimulation& player() const { return player_; }
 
 private:
     bool ready_ = false;
     uint64_t tick_ = 0;
     float frame_scale_ = 1.0f;
+    PlayerSimulation player_{};
 };
 
 } // namespace open_crossing
