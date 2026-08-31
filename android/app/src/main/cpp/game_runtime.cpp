@@ -1,5 +1,8 @@
 #include "game_runtime.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include <GLES3/gl3.h>
 
 namespace open_crossing {
@@ -19,7 +22,17 @@ GLuint make_program() {
     constexpr char kVertexShader[] = R"(
         #version 300 es
         layout(location = 0) in vec2 a_position;
-        void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
+        uniform vec2 u_translation;
+        uniform float u_angle;
+        void main() {
+            float c = cos(u_angle);
+            float s = sin(u_angle);
+            vec2 rotated = vec2(
+                a_position.x * c - a_position.y * s,
+                a_position.x * s + a_position.y * c
+            );
+            gl_Position = vec4(rotated + u_translation, 0.0, 1.0);
+        }
     )";
     constexpr char kFragmentShader[] = R"(
         #version 300 es
@@ -29,7 +42,11 @@ GLuint make_program() {
     )";
     const GLuint vertex = compile_shader(GL_VERTEX_SHADER, kVertexShader);
     const GLuint fragment = compile_shader(GL_FRAGMENT_SHADER, kFragmentShader);
-    if (!vertex || !fragment) { if (vertex) glDeleteShader(vertex); if (fragment) glDeleteShader(fragment); return 0; }
+    if (!vertex || !fragment) {
+        if (vertex) glDeleteShader(vertex);
+        if (fragment) glDeleteShader(fragment);
+        return 0;
+    }
     const GLuint program = glCreateProgram();
     glAttachShader(program, vertex); glAttachShader(program, fragment); glLinkProgram(program);
     glDeleteShader(vertex); glDeleteShader(fragment);
@@ -62,16 +79,31 @@ void GameRuntime::frame() {
     game_loop_.update(platform_);
 
     static GLuint program = 0, vertex_buffer = 0;
+    static GLint translation_location = -1, angle_location = -1;
     if (!program) {
         program = make_program();
-        constexpr float vertices[] = { 0.0f, 0.65f, -0.65f, -0.55f, 0.65f, -0.55f };
+        constexpr float vertices[] = { 0.0f, 0.065f, -0.045f, -0.04f, 0.045f, -0.04f };
         glGenBuffers(1, &vertex_buffer); glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if (program) {
+            translation_location = glGetUniformLocation(program, "u_translation");
+            angle_location = glGetUniformLocation(program, "u_angle");
+        }
     }
+
     glClearColor(0.04f, 0.10f, 0.06f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     if (program && vertex_buffer) {
-        glUseProgram(program); glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        const auto& player = game_loop_.player();
+        // Map the portable world coordinates into a bounded debug viewport so
+        // the first real player state is directly visible on the RG477V.
+        const float screen_x = std::clamp(player.x() * 0.035f, -0.88f, 0.88f);
+        const float screen_y = std::clamp(player.z() * 0.035f, -0.88f, 0.88f);
+
+        glUseProgram(program);
+        if (translation_location >= 0) glUniform2f(translation_location, screen_x, screen_y);
+        if (angle_location >= 0) glUniform1f(angle_location, player.angle());
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
         glEnableVertexAttribArray(0); glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glDisableVertexAttribArray(0); glBindBuffer(GL_ARRAY_BUFFER, 0); glUseProgram(0);
