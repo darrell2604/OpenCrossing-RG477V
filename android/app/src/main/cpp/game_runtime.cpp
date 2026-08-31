@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include <GLES3/gl3.h>
-
 namespace open_crossing {
 
 namespace {
@@ -74,7 +72,8 @@ void GameRuntime::frame() {
     render_frame.camera_x = camera_.state().x;
     render_frame.camera_z = camera_.state().z;
     render_frame.camera_yaw = camera_.state().yaw;
-    render_frame.world_vertices = world_.vertices();
+    render_frame.world = &world_;
+    render_frame.world_vertices = &world_.vertices();
     renderer_.draw(render_frame);
 }
 
