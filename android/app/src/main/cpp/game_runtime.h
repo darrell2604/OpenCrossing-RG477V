@@ -1,10 +1,19 @@
 #pragma once
 
+#include <cstdint>
+
 #include "decomp_game_loop.h"
 #include "decomp_runtime_adapter.h"
 #include "platform_services.h"
 
 namespace open_crossing {
+
+struct SceneState {
+    float player_x = 0.0f;
+    float player_z = 0.0f;
+    float player_angle = 0.0f;
+    std::uint64_t frame = 0;
+};
 
 class GameRuntime {
 public:
@@ -16,12 +25,14 @@ public:
     const PlatformServices& platform() const { return platform_; }
     const DecompRuntimeAdapter& decomp() const { return decomp_; }
     const DecompGameLoop& game_loop() const { return game_loop_; }
+    const SceneState& scene() const { return scene_; }
 
 private:
     bool ready_ = false;
     PlatformServices platform_{};
     DecompRuntimeAdapter decomp_{};
     DecompGameLoop game_loop_{};
+    SceneState scene_{};
     int width_ = 0;
     int height_ = 0;
     unsigned long long frame_counter_ = 0;
