@@ -65,8 +65,13 @@ bool GameRuntime::initialise() {
     platform_ = {};
     scene_ = {};
     frame_counter_ = 0;
+    interaction_targets_.clear();
+    interaction_targets_.push_back({1.5f, 0.0f, 0.8f, 1});
+    interaction_.reset();
+    interaction_.set_targets(interaction_targets_);
     if (!decomp_.initialise(platform_)) return false;
     if (!game_loop_.initialise(platform_)) return false;
+    camera_.reset(game_loop_.player());
     ready_ = true;
     return true;
 }
@@ -87,6 +92,10 @@ void GameRuntime::frame() {
     game_loop_.update(platform_);
 
     const auto& player = game_loop_.player();
+    const auto& controls = oc::controller_state();
+    interaction_.update(player, controls);
+    camera_.update(player, controls);
+
     scene_.player_x = player.x();
     scene_.player_z = player.z();
     scene_.player_angle = player.angle();
