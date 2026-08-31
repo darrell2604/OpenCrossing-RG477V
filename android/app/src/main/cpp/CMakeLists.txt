@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(opencrossing SHARED
     native_bridge.cpp
     game_runtime.cpp
+    decomp_runtime_adapter.cpp
     port_controller.cpp
     platform_input.cpp
 )
