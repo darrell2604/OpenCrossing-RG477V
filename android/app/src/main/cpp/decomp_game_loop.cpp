@@ -7,46 +7,42 @@ namespace open_crossing {
 namespace {
 constexpr std::uint64_t kFramesPerGameDay = 60ull * 60ull * 24ull;
 constexpr std::uint64_t kFramesPerGameMinute = 60ull;
-constexpr std::uint64_t kMaxBells = 999999ull;
 constexpr std::uint32_t kPickupItemId = 1001u;
+constexpr std::uint32_t kBellReward = 1u;
 }
 
 bool DecompGameLoop::initialise(const PlatformServices& services) {
     tick_ = services.frame_number;
     frame_scale_ = 1.0f;
-    phase_ = GamePhase::Playing;
-    day_ = 1;
-    bells_ = 0;
-    interaction_count_ = 0;
-    frames_since_day_start_ = 0;
+    state_.reset();
+    inventory_.reset();
     player_.reset();
     ready_ = true;
     return ready_;
 }
 
-void DecompGameLoop::advance_game_time(std::uint64_t elapsed_frames) {
-    if (phase_ != GamePhase::Playing) return;
-    frames_since_day_start_ += static_cast<std::uint32_t>(elapsed_frames);
-    while (frames_since_day_start_ >= kFramesPerGameDay) {
-        frames_since_day_start_ -= static_cast<std::uint32_t>(kFramesPerGameDay);
-        ++day_;
-    }
-}
+void DecompGameLoop::advance_game_state(std::uint64_t elapsed_frames) {
+    state_.update(elapsed_frames);
 
-void DecompGameLoop::process_gameplay_state() {
-    if (phase_ != GamePhase::Playing) return;
-    if (player_.moving() && player_.steps() > 0 && (player_.steps() % 600u) == 0u) {
-        if (bells_ < kMaxBells) ++bells_;
+    if (state_.state().game_minutes >= 24ull * 60ull) {
+        state_.start_new_day();
     }
 }
 
 void DecompGameLoop::process_actions() {
-    if (phase_ != GamePhase::Playing) return;
+    if (state_.state().phase != GamePhase::Playing) return;
 
     const auto& controller = oc::controller_state();
-    if (controller.buttons & oc::A) {
-        ++interaction_count_;
-        inventory_.add(kPickupItemId, 1);
+    if ((controller.buttons & oc::A) != 0u) {
+        const bool added = inventory_.add(kPickupItemId, 1);
+        if (added) {
+            state_.record_interaction();
+            state_.add_bells(kBellReward);
+        }
+    }
+
+    if ((controller.buttons & oc::START) != 0u) {
+        state_.toggle_pause();
     }
 }
 
@@ -55,18 +51,17 @@ void DecompGameLoop::update(const PlatformServices& services) {
 
     const std::uint64_t elapsed = services.frame_number - tick_;
     tick_ = services.frame_number;
-    frame_scale_ = elapsed > 0 ? static_cast<float>(elapsed) : 1.0f;
+    frame_scale_ = static_cast<float>(elapsed);
 
-    if (oc::controller_state().buttons & oc::START) {
-        phase_ = phase_ == GamePhase::Paused ? GamePhase::Playing : GamePhase::Paused;
-    }
-
-    if (phase_ != GamePhase::Playing) return;
+    process_actions();
+    if (state_.state().phase != GamePhase::Playing) return;
 
     player_.update(oc::controller_state());
-    process_actions();
-    advance_game_time(elapsed);
-    process_gameplay_state();
+    advance_game_state(elapsed);
+
+    if (state_.state().game_minutes == 0 && elapsed >= kFramesPerGameDay) {
+        state_.start_new_day();
+    }
 }
 
 } // namespace open_crossing
