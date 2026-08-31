@@ -26,6 +26,7 @@ public:
         WalkStart,
         Walk,
         WalkStop,
+        Turn,
     };
 
     void reset();
@@ -37,12 +38,14 @@ public:
     float angle() const { return angle_; }
     float speed() const { return speed_; }
     float input_magnitude() const { return input_magnitude_; }
+    float turn_amount() const { return turn_amount_; }
     MovementState movement_state() const { return movement_state_; }
     AnimationState animation_state() const { return animation_state_; }
     bool moving() const { return movement_state_ != MovementState::Idle; }
     bool blocked() const { return blocked_; }
     float animation_frame() const { return animation_frame_; }
     float animation_phase() const { return animation_phase_; }
+    float animation_blend() const { return animation_blend_; }
     std::uint64_t steps() const { return steps_; }
 
 private:
@@ -53,13 +56,16 @@ private:
     float x_ = 0.0f;
     float z_ = 0.0f;
     float angle_ = 0.0f;
+    float previous_angle_ = 0.0f;
     float speed_ = 0.0f;
     float input_magnitude_ = 0.0f;
+    float turn_amount_ = 0.0f;
     MovementState movement_state_ = MovementState::Idle;
     AnimationState animation_state_ = AnimationState::Idle;
     bool blocked_ = false;
     float animation_frame_ = 0.0f;
     float animation_phase_ = 0.0f;
+    float animation_blend_ = 0.0f;
     std::uint64_t steps_ = 0;
     std::vector<CollisionRect> collision_rects_;
 };
