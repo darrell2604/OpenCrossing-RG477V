@@ -9,6 +9,8 @@
 #include "scene_state.h"
 #include "player_camera.h"
 #include "player_interaction.h"
+#include "world_geometry.h"
+#include "renderer_pipeline.h"
 
 namespace open_crossing {
 
@@ -17,6 +19,7 @@ public:
     bool initialise();
     void resize(int width, int height);
     void frame();
+    void shutdown();
 
     bool ready() const { return ready_; }
     const PlatformServices& platform() const { return platform_; }
@@ -25,6 +28,7 @@ public:
     const SceneState& scene() const { return scene_; }
     const PlayerCamera& camera() const { return camera_; }
     const PlayerInteraction& interaction() const { return interaction_; }
+    const WorldGeometry& world() const { return world_; }
 
 private:
     bool ready_ = false;
@@ -35,6 +39,8 @@ private:
     PlayerCamera camera_{};
     PlayerInteraction interaction_{};
     std::vector<InteractionTarget> interaction_targets_;
+    WorldGeometry world_{};
+    RendererPipeline renderer_{};
     int width_ = 0;
     int height_ = 0;
     unsigned long long frame_counter_ = 0;
