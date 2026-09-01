@@ -27,16 +27,23 @@ void DecompGameLoop::advance_game_state(std::uint64_t elapsed_frames) {
 
 void DecompGameLoop::process_actions() {
     const auto& controller = oc::controller_state();
+    const bool just_pressed_a = (controller.buttons & oc::A) != 0u &&
+                                (previous_buttons_ & oc::A) == 0u;
+    const bool just_pressed_start = (controller.buttons & oc::START) != 0u &&
+                                    (previous_buttons_ & oc::START) == 0u;
+    previous_buttons_ = controller.buttons;
 
-    if ((controller.buttons & oc::START) != 0u) {
+    if (just_pressed_start) {
         state_.toggle_pause();
+        state_.set_inventory_open(false);
         return;
     }
 
     if (state_.state().phase != GamePhase::Playing) return;
 
-    if ((controller.buttons & oc::A) != 0u) {
-        if (inventory_.add(kPickupItemId, 1)) {
+    if (just_pressed_a) {
+        const std::uint32_t target = interaction_target_id_ == 0 ? kPickupItemId : interaction_target_id_;
+        if (inventory_.add(target, 1)) {
             state_.record_interaction();
             state_.add_bells(kBellReward);
         }
