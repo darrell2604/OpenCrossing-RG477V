@@ -1,6 +1,7 @@
 #include "decomp_game_loop.h"
 
 #include "port_controller.h"
+#include "pause_inventory_controls.h"
 
 namespace open_crossing {
 
@@ -16,6 +17,8 @@ bool DecompGameLoop::initialise(const PlatformServices& services) {
     state_.start_new_day();
     inventory_.reset();
     player_.reset();
+    previous_buttons_ = 0;
+    interaction_target_id_ = kPickupItemId;
     ready_ = true;
     return true;
 }
@@ -31,15 +34,17 @@ void DecompGameLoop::process_actions() {
                                 (previous_buttons_ & oc::A) == 0u;
     const bool just_pressed_start = (controller.buttons & oc::START) != 0u &&
                                     (previous_buttons_ & oc::START) == 0u;
+    const bool just_pressed_y = (controller.buttons & oc::Y) != 0u &&
+                                (previous_buttons_ & oc::Y) == 0u;
     previous_buttons_ = controller.buttons;
 
+    process_pause_inventory_controls(state_, just_pressed_start, just_pressed_y);
+
     if (just_pressed_start) {
-        state_.toggle_pause();
-        state_.set_inventory_open(false);
         return;
     }
 
-    if (state_.state().phase != GamePhase::Playing) return;
+    if (state_.state().phase != GamePhase::Playing || state_.state().inventory_open) return;
 
     if (just_pressed_a) {
         const std::uint32_t target = interaction_target_id_ == 0 ? kPickupItemId : interaction_target_id_;
@@ -58,7 +63,7 @@ void DecompGameLoop::update(const PlatformServices& services) {
     frame_scale_ = static_cast<float>(elapsed);
 
     process_actions();
-    if (state_.state().phase != GamePhase::Playing) return;
+    if (state_.state().phase != GamePhase::Playing || state_.state().inventory_open) return;
 
     player_.update(oc::controller_state());
     advance_game_state(elapsed);
