@@ -19,6 +19,10 @@ constexpr float kTurnRate = 0.22f;
 constexpr float kStopFrames = 2.0f;
 constexpr float kPi = 3.14159265f;
 constexpr float kTwoPi = 6.28318531f;
+constexpr float kWorldMinX = -8.0f;
+constexpr float kWorldMaxX = 8.0f;
+constexpr float kWorldMinZ = -8.0f;
+constexpr float kWorldMaxZ = 8.0f;
 
 float shortest_angle_delta(float target, float current) {
     float delta = target - current;
@@ -63,6 +67,11 @@ void PlayerSimulation::set_collision_rects(const std::vector<CollisionRect>& rec
 }
 
 bool PlayerSimulation::collides(float x, float z) const {
+    if (x < kWorldMinX + kCollisionRadius || x > kWorldMaxX - kCollisionRadius ||
+        z < kWorldMinZ + kCollisionRadius || z > kWorldMaxZ - kCollisionRadius) {
+        return true;
+    }
+
     for (const CollisionRect& rect : collision_rects_) {
         if (point_in_expanded_rect(x, z, rect, kCollisionRadius)) {
             return true;
@@ -82,14 +91,17 @@ void PlayerSimulation::try_move(float dx, float dz) {
         return;
     }
 
+    bool moved = false;
     if (std::fabs(dx) > 0.0f && !collides(next_x, z_)) {
         x_ = next_x;
+        moved = true;
     }
     if (std::fabs(dz) > 0.0f && !collides(x_, next_z)) {
         z_ = next_z;
+        moved = true;
     }
 
-    blocked_ = true;
+    blocked_ = !moved;
 }
 
 void PlayerSimulation::update_animation() {
