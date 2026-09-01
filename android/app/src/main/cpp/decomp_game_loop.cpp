@@ -5,8 +5,6 @@
 namespace open_crossing {
 
 namespace {
-constexpr std::uint64_t kFramesPerGameDay = 60ull * 60ull * 24ull;
-constexpr std::uint64_t kFramesPerGameMinute = 60ull;
 constexpr std::uint32_t kPickupItemId = 1001u;
 constexpr std::uint32_t kBellReward = 1u;
 }
@@ -19,15 +17,12 @@ bool DecompGameLoop::initialise(const PlatformServices& services) {
     inventory_.reset();
     player_.reset();
     ready_ = true;
-    return ready_;
+    return true;
 }
 
 void DecompGameLoop::advance_game_state(std::uint64_t elapsed_frames) {
     if (state_.state().phase != GamePhase::Playing || elapsed_frames == 0) return;
     state_.update(elapsed_frames);
-    if (state_.state().game_minutes >= 24ull * 60ull) {
-        state_.start_new_day();
-    }
 }
 
 void DecompGameLoop::process_actions() {
@@ -35,13 +30,13 @@ void DecompGameLoop::process_actions() {
 
     if ((controller.buttons & oc::START) != 0u) {
         state_.toggle_pause();
+        return;
     }
 
     if (state_.state().phase != GamePhase::Playing) return;
 
     if ((controller.buttons & oc::A) != 0u) {
-        const bool added = inventory_.add(kPickupItemId, 1);
-        if (added) {
+        if (inventory_.add(kPickupItemId, 1)) {
             state_.record_interaction();
             state_.add_bells(kBellReward);
         }
