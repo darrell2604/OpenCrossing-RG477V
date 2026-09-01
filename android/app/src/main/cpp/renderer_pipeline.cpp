@@ -38,7 +38,7 @@ GLuint make_program() {
                 a_position.x * s + a_position.z * c
             );
             vec3 view = rotated + u_translation;
-            gl_Position = vec4(view.x * u_view_scale.x, view.z * u_view_scale.y, 0.0, 1.0);
+            gl_Position = vec4(view.x * u_view_scale.x, view.z * u_view_scale.y, view.y * 0.08, 1.0);
             v_uv = a_uv;
         }
     )";
@@ -147,6 +147,9 @@ void RendererPipeline::upload_world(const WorldGeometry& world) {
 void RendererPipeline::draw(const RenderFrame& frame) {
     if (!program_ || !player_vertex_buffer_ || !world_vertex_buffer_) return;
 
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_TRUE);
     glClearColor(0.035f, 0.075f, 0.045f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
