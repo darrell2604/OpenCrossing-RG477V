@@ -7,7 +7,6 @@ namespace open_crossing {
 namespace {
 constexpr std::uint32_t kPickupItemId = 1001u;
 constexpr std::uint32_t kBellReward = 1u;
-constexpr std::uint32_t kInventoryCapacity = 20u;
 }
 
 bool DecompGameLoop::initialise(const PlatformServices& services) {
@@ -17,8 +16,6 @@ bool DecompGameLoop::initialise(const PlatformServices& services) {
     state_.start_new_day();
     inventory_.reset();
     player_.reset();
-    previous_buttons_ = 0;
-    interaction_target_id_ = kPickupItemId;
     ready_ = true;
     return true;
 }
@@ -45,8 +42,8 @@ void DecompGameLoop::process_actions() {
     if (state_.state().phase != GamePhase::Playing) return;
 
     if (just_pressed_a) {
-        if (inventory_.count(interaction_target_id_) < kInventoryCapacity &&
-            inventory_.add(interaction_target_id_, 1)) {
+        const std::uint32_t target = interaction_target_id_ == 0 ? kPickupItemId : interaction_target_id_;
+        if (inventory_.add(target, 1)) {
             state_.record_interaction();
             state_.add_bells(kBellReward);
         }
