@@ -19,6 +19,7 @@ add_library(opencrossing SHARED
     platform_input.cpp
     game_state.cpp
     inventory_system.cpp
+    iso9660_loader.cpp
 )
 
 target_include_directories(opencrossing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
