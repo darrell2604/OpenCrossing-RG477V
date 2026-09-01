@@ -21,6 +21,7 @@ add_library(opencrossing SHARED
     inventory_system.cpp
     gamecube_fst.cpp
     gamecube_disc.cpp
+    disc_runtime.cpp
 )
 
 target_include_directories(opencrossing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
