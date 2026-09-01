@@ -39,8 +39,8 @@ void DecompGameLoop::process_actions() {
     const std::uint8_t dpad = controller.dpad;
     const bool just_up = (dpad & oc::DPAD_UP) != 0u && (previous_dpad_ & oc::DPAD_UP) == 0u;
     const bool just_down = (dpad & oc::DPAD_DOWN) != 0u && (previous_dpad_ & oc::DPAD_DOWN) == 0u;
-    const bool just_left = (dpad & oc::DPAD_LEFT) != 0u && (previous_dpad_ & DPAD_LEFT) == 0u;
-    const bool just_right = (dpad & oc::DPAD_RIGHT) != 0u && (previous_dpad_ & DPAD_RIGHT) == 0u;
+    const bool just_left = (dpad & oc::DPAD_LEFT) != 0u && (previous_dpad_ & oc::DPAD_LEFT) == 0u;
+    const bool just_right = (dpad & oc::DPAD_RIGHT) != 0u && (previous_dpad_ & oc::DPAD_RIGHT) == 0u;
 
     previous_buttons_ = controller.buttons;
     previous_dpad_ = dpad;
