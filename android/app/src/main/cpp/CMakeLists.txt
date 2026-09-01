@@ -17,6 +17,8 @@ add_library(opencrossing SHARED
     world_geometry.cpp
     port_controller.cpp
     platform_input.cpp
+    game_state.cpp
+    inventory_system.cpp
 )
 
 target_include_directories(opencrossing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
