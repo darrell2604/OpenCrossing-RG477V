@@ -40,6 +40,8 @@ private:
     GameStateSystem state_{};
     InventorySystem inventory_{};
     PlayerSimulation player_{};
+    std::uint32_t previous_buttons_ = 0;
+    std::uint32_t interaction_target_id_ = 0;
 };
 
 } // namespace open_crossing
