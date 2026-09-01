@@ -18,7 +18,7 @@ public:
     std::uint64_t tick() const { return tick_; }
     bool ready() const { return ready_; }
     float frame_scale() const { return frame_scale_; }
-    GameStateSystem::GamePhase phase() const { return state_.state().phase; }
+    GamePhase phase() const { return state_.state().phase; }
     std::uint32_t day() const { return state_.state().day; }
     std::uint64_t bells() const { return state_.state().bells; }
     std::uint64_t interaction_count() const { return state_.state().interactions; }
