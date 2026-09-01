@@ -32,9 +32,13 @@ public:
     void set_inventory_open(bool open);
 
     const GameState& state() const { return state_; }
+    std::uint32_t hour() const { return static_cast<std::uint32_t>((state_.game_minutes / 60u) % 24u); }
+    std::uint32_t minute() const { return static_cast<std::uint32_t>(state_.game_minutes % 60u); }
+    std::uint32_t time_of_day_minutes() const { return static_cast<std::uint32_t>(state_.game_minutes % 1440u); }
 
 private:
     GameState state_{};
+    std::uint64_t frame_remainder_ = 0;
 };
 
 } // namespace open_crossing
