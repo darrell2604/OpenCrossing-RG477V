@@ -9,20 +9,40 @@ void GameStateSystem::reset() {
     state_ = {};
     state_.phase = GamePhase::Boot;
     state_.day = 1;
+    frame_remainder_ = 0;
 }
 
 void GameStateSystem::start_new_day() {
-    state_.day = std::max<std::uint32_t>(1, state_.day + 1);
+    if (state_.phase != GamePhase::Boot) {
+        state_.day = std::max<std::uint32_t>(1, state_.day + 1);
+    } else {
+        state_.day = 1;
+    }
     state_.game_minutes = 0;
+    frame_remainder_ = 0;
     state_.phase = GamePhase::Playing;
 }
 
 void GameStateSystem::update(std::uint64_t elapsed_frames) {
     if (state_.phase != GamePhase::Playing || elapsed_frames == 0) return;
+
     constexpr std::uint64_t kFramesPerGameMinute = 60;
-    const std::uint64_t minutes = elapsed_frames / kFramesPerGameMinute;
+    constexpr std::uint64_t kMinutesPerDay = 24u * 60u;
+
+    const std::uint64_t frames = frame_remainder_ + elapsed_frames;
+    const std::uint64_t minutes = frames / kFramesPerGameMinute;
+    frame_remainder_ = frames % kFramesPerGameMinute;
     if (minutes == 0) return;
-    state_.game_minutes += minutes;
+
+    const std::uint64_t total_minutes = state_.game_minutes + minutes;
+    const std::uint64_t completed_days = total_minutes / kMinutesPerDay;
+    state_.game_minutes = total_minutes % kMinutesPerDay;
+
+    for (std::uint64_t i = 0; i < completed_days; ++i) {
+        if (state_.day < std::numeric_limits<std::uint32_t>::max()) {
+            ++state_.day;
+        }
+    }
 }
 
 void GameStateSystem::toggle_pause() {
