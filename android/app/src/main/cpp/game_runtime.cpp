@@ -1,6 +1,7 @@
 #include "game_runtime.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace open_crossing {
 
@@ -10,6 +11,21 @@ void seed_demo_world(WorldGeometry& world) {
     world.set_ground({-8.0f, -8.0f, 8.0f, 8.0f, 0.0f});
     world.add_object({2.0f, 0.0f, 1.0f, 1.5f, 0.35f, 1});
     world.add_object({-2.0f, 1.5f, 1.2f, 0.9f, -0.55f, 2});
+}
+
+std::vector<CollisionRect> build_collision_rects(const WorldGeometry& world) {
+    std::vector<CollisionRect> rects;
+    rects.reserve(world.objects().size());
+    for (const WorldObject& object : world.objects()) {
+        const float half = object.size * 0.5f;
+        rects.push_back({
+            object.x - half,
+            object.z - half,
+            object.x + half,
+            object.z + half,
+        });
+    }
+    return rects;
 }
 }
 
@@ -29,6 +45,7 @@ bool GameRuntime::initialise() {
 
     if (!decomp_.initialise(platform_)) return false;
     if (!game_loop_.initialise(platform_)) return false;
+    game_loop_.set_collision_rects(build_collision_rects(world_));
     camera_.reset(game_loop_.player());
     if (!renderer_.initialise()) return false;
 
