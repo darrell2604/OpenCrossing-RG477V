@@ -2,7 +2,7 @@ name: Android build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, fix/ci-current-main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -16,6 +16,14 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify checkout revision
+        run: |
+          echo "Expected commit: $GITHUB_SHA"
+          echo "Checked out commit: $(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Checkout upstream decomp (reference only)
         uses: actions/checkout@v4
