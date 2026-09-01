@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "platform_services.h"
 #include "player_simulation.h"
@@ -14,6 +15,7 @@ class DecompGameLoop {
 public:
     bool initialise(const PlatformServices& services);
     void update(const PlatformServices& services);
+    void set_collision_rects(const std::vector<CollisionRect>& rects) { player_.set_collision_rects(rects); }
 
     std::uint64_t tick() const { return tick_; }
     bool ready() const { return ready_; }
@@ -40,6 +42,8 @@ private:
     GameStateSystem state_{};
     InventorySystem inventory_{};
     PlayerSimulation player_{};
+    std::uint32_t previous_buttons_ = 0;
+    std::uint32_t interaction_target_id_ = 0;
 };
 
 } // namespace open_crossing
