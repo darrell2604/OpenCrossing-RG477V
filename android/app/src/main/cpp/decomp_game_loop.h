@@ -26,6 +26,7 @@ public:
     std::uint64_t interaction_count() const { return state_.state().interactions; }
     const GameStateSystem& game_state() const { return state_; }
     const InventorySystem& inventory() const { return inventory_; }
+    std::size_t selected_inventory_slot() const { return selected_inventory_slot_; }
 
     const PlayerSimulation& player() const { return player_; }
     SceneState scene_state() const {
@@ -35,6 +36,7 @@ public:
 private:
     void process_actions();
     void advance_game_state(std::uint64_t elapsed_frames);
+    void move_inventory_selection(int delta);
 
     bool ready_ = false;
     std::uint64_t tick_ = 0;
@@ -44,6 +46,7 @@ private:
     PlayerSimulation player_{};
     std::uint32_t previous_buttons_ = 0;
     std::uint32_t interaction_target_id_ = 0;
+    std::size_t selected_inventory_slot_ = 0;
 };
 
 } // namespace open_crossing
