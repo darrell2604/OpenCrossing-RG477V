@@ -14,6 +14,7 @@ class DecompGameLoop {
 public:
     bool initialise(const PlatformServices& services);
     void update(const PlatformServices& services);
+    void set_collision_rects(const std::vector<CollisionRect>& rects) { player_.set_collision_rects(rects); }
 
     std::uint64_t tick() const { return tick_; }
     bool ready() const { return ready_; }
