@@ -37,8 +37,6 @@ bool GameCubeDisc::open(const std::vector<std::uint8_t>& image, std::string* err
     info_.game_code.assign(reinterpret_cast<const char*>(image.data() + kGameCodeOffset), kGameCodeLength);
     info_.maker_code.assign(reinterpret_cast<const char*>(image.data() + kMakerCodeOffset), kMakerCodeLength);
 
-    // GameCube disc header stores the FST offset directly in bytes.
-    // The supplied Animal Crossing image records 0x000FE500 here.
     const std::uint32_t fst_offset = read_be32(image.data() + kFstOffsetField);
     const std::uint32_t fst_size = read_be32(image.data() + kFstSizeField);
     const std::uint64_t fst_end = static_cast<std::uint64_t>(fst_offset) + fst_size;
