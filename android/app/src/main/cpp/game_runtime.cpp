@@ -27,6 +27,16 @@ std::vector<CollisionRect> build_collision_rects(const WorldGeometry& world) {
     }
     return rects;
 }
+
+std::vector<InteractionTarget> build_interaction_targets(const WorldGeometry& world) {
+    std::vector<InteractionTarget> targets;
+    targets.reserve(world.objects().size());
+    for (const WorldObject& object : world.objects()) {
+        const float radius = std::max(0.75f, object.size * 0.8f);
+        targets.push_back({object.x, object.z, radius, object.id});
+    }
+    return targets;
+}
 }
 
 bool GameRuntime::initialise() {
@@ -35,13 +45,12 @@ bool GameRuntime::initialise() {
     scene_ = {};
     frame_counter_ = 0;
 
-    interaction_targets_.clear();
-    interaction_targets_.push_back({1.5f, 0.0f, 0.8f, 1});
-    interaction_.reset();
-    interaction_.set_targets(interaction_targets_);
-
     world_.reset();
     seed_demo_world(world_);
+
+    interaction_targets_ = build_interaction_targets(world_);
+    interaction_.reset();
+    interaction_.set_targets(interaction_targets_);
 
     if (!decomp_.initialise(platform_)) return false;
     if (!game_loop_.initialise(platform_)) return false;
