@@ -15,6 +15,7 @@ bool DecompGameLoop::initialise(const PlatformServices& services) {
     tick_ = services.frame_number;
     frame_scale_ = 1.0f;
     state_.reset();
+    state_.start_new_day();
     inventory_.reset();
     player_.reset();
     ready_ = true;
@@ -22,27 +23,28 @@ bool DecompGameLoop::initialise(const PlatformServices& services) {
 }
 
 void DecompGameLoop::advance_game_state(std::uint64_t elapsed_frames) {
+    if (state_.state().phase != GamePhase::Playing || elapsed_frames == 0) return;
     state_.update(elapsed_frames);
-
     if (state_.state().game_minutes >= 24ull * 60ull) {
         state_.start_new_day();
     }
 }
 
 void DecompGameLoop::process_actions() {
+    const auto& controller = oc::controller_state();
+
+    if ((controller.buttons & oc::START) != 0u) {
+        state_.toggle_pause();
+    }
+
     if (state_.state().phase != GamePhase::Playing) return;
 
-    const auto& controller = oc::controller_state();
     if ((controller.buttons & oc::A) != 0u) {
         const bool added = inventory_.add(kPickupItemId, 1);
         if (added) {
             state_.record_interaction();
             state_.add_bells(kBellReward);
         }
-    }
-
-    if ((controller.buttons & oc::START) != 0u) {
-        state_.toggle_pause();
     }
 }
 
@@ -58,10 +60,6 @@ void DecompGameLoop::update(const PlatformServices& services) {
 
     player_.update(oc::controller_state());
     advance_game_state(elapsed);
-
-    if (state_.state().game_minutes == 0 && elapsed >= kFramesPerGameDay) {
-        state_.start_new_day();
-    }
 }
 
 } // namespace open_crossing
