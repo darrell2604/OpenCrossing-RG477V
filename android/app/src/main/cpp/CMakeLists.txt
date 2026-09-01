@@ -11,6 +11,7 @@ add_library(opencrossing SHARED
     renderer_pipeline.cpp
     decomp_runtime_adapter.cpp
     decomp_game_loop.cpp
+    pause_inventory_controls.cpp
     player_simulation.cpp
     player_interaction.cpp
     player_camera.cpp
