@@ -22,6 +22,7 @@ add_library(opencrossing SHARED
     gamecube_fst.cpp
     gamecube_disc.cpp
     disc_runtime.cpp
+    rarc_archive.cpp
 )
 
 target_include_directories(opencrossing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
